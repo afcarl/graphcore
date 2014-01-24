@@ -3,8 +3,8 @@
 
 from distutils.core import setup
 
-setup(name='persist',
+setup(name='graphcore',
       version='0.0.0',
-      packages=['persist'],
+      packages=['graphcore'],
 )
 
