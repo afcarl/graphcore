@@ -9,7 +9,6 @@ graphcore = Extension(
     libraries = ['lmdb'],
     library_dirs = ['lib/mdb/libraries/liblmdb'],
     include_dirs = ['lib/mdb/libraries/liblmdb'],
-    runtime_library_dirs = ['lib/mdb/libraries/liblmdb'],
 )
 
 setup(name='graphcore',
