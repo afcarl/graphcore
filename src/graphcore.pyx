@@ -1,11 +1,10 @@
 
 cimport cmdb
 
-from graph import Node, Edge, decode_edge
+include "graph.pyx"
 
-cdef enum:
-    MAP_SIZE = 1024 * 1024 * 1024 * 20
-    MAX_DBS = 3
+cdef size_t MAP_SIZE = 1024 * 1024 * 1024 * 20
+cdef int MAX_DBS = 3
 
 
 cdef class EdgeSet:
@@ -20,6 +19,9 @@ cdef class NodeSet:
 
     def __init__(self, graph):
         self.graph = graph
+
+    cdef add(self, Node n):
+        pass
 
 
 cdef class Graph:
@@ -65,6 +67,5 @@ cdef class Graph:
 
 
 
-g = Graph()
 
 

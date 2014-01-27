@@ -6,14 +6,6 @@ from libc.string cimport memcpy
 cdef class Node:
     cdef bytes _name
 
-    def __init__(self, unicode name):
-        self.name = name
-
-
-    def __repr__(self):
-        return '(Node: %s)' % self.name
-
-
     property name:
         def __set__(self, name):
             self._name = name.encode('UTF-8')
@@ -23,7 +15,14 @@ cdef class Node:
 
         def __get__(self):
             return self._name.decode('UTF-8', 'strict')
-    
+
+    def __init__(self, unicode name):
+        self.name = name
+
+
+    def __repr__(self):
+        return '(Node: %s)' % self.name
+
 
 cdef Edge decode_edge(char* encoded_edge, size_t encoded_edge_size):
     cdef int n1_len = <int> encoded_edge[0]
