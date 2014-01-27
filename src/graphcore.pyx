@@ -1,4 +1,5 @@
 
+from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 cimport cmdb
 
 include "graph.pyx"
@@ -10,25 +11,37 @@ cdef int MAX_DBS = 3
 cdef class EdgeSet:
     cdef Graph graph
 
+
     def __init__(self, graph):
         self.graph = graph
+
 
 
 cdef class NodeSet:
     cdef Graph graph
 
+
     def __init__(self, graph):
         self.graph = graph
 
-    cdef add(self, Node n):
-        pass
+
+    def add(self, Node n):
+        cdef cmdb.MDB_txn *txn
+        cdef cmdb.MDB_val *nodename = <cmdb.MDB_val*> PyMem_Malloc(sizeof(cmdb.MDB_val)) 
+        nodename.mv_size = 0
+        nodename.mv_data = NULL
+        
+        cmdb.mdb_txn_begin(self.graph.env, NULL, 0, &txn)
+        cmdb.mdb_put(txn, self.graph.nodes_db, nodename, NULL, 0)
+        cmdb.mdb_txn_commit(txn)
+
 
 
 cdef class Graph:
     cdef cmdb.MDB_env *env
-    cdef cmdb.MDB_dbi *nodes_db
-    cdef cmdb.MDB_dbi *edges_db
-    cdef cmdb.MDB_dbi *meta_db
+    cdef cmdb.MDB_dbi nodes_db
+    cdef cmdb.MDB_dbi edges_db
+    cdef cmdb.MDB_dbi meta_db
 
     cdef NodeSet _nodes
     cdef EdgeSet _edges
@@ -58,9 +71,9 @@ cdef class Graph:
 
         cmdb.mdb_txn_begin(self.env, NULL, 0, &txn)
 
-        cmdb.mdb_dbi_open(txn, "nodes", 0, self.nodes_db)
-        cmdb.mdb_dbi_open(txn, "edges", 0, self.edges_db) 
-        cmdb.mdb_dbi_open(txn, "meta", 0, self.meta_db)
+        cmdb.mdb_dbi_open(txn, "nodes", 0, &self.nodes_db)
+        cmdb.mdb_dbi_open(txn, "edges", 0, &self.edges_db) 
+        cmdb.mdb_dbi_open(txn, "meta", 0, &self.meta_db)
 
         cmdb.mdb_txn_commit(txn)
 
