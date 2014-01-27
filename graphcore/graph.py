@@ -3,6 +3,7 @@ from mdb import Env, KeyNotFoundError, MDB_RDONLY, Cursor, \
         MDB_NEXT, MDB_SET, MDB_FIRST, MDB_SET_RANGE, MDB_GET_BOTH_RANGE, \
         MDB_GET_CURRENT, MDB_PREV
 from tempfile import mkdtemp
+from os import path, makedirs
 
 MAP_SIZE = 1024 * 1024 * 1024 * 20
 
@@ -12,6 +13,8 @@ class Graph(object):
     def __init__(self, dirname=None):
         if dirname is None:
             dirname = mkdtemp()
+        if not path.exists(dirname):
+            makedirs(dirname)
         self._env = Env(dirname, mapsize=MAP_SIZE)
         txn = self._env.begin_txn()
         self._nodes = self._env.open_db(txn, 'nodes')
@@ -45,6 +48,18 @@ class Graph(object):
     def list_all_edges(self):
         txn = self._env.begin_txn()
         c = Cursor(txn, self._edges)
+        op = MDB_FIRST
+        while True:
+            k, v = c.get(op=op)
+            op = MDB_NEXT
+            if k is None:
+                txn.commit()
+                return
+            yield k
+
+    def list_all_nodes(self):
+        txn = self._env.begin_txn()
+        c = Cursor(txn, self._nodes)
         op = MDB_FIRST
         while True:
             k, v = c.get(op=op)
