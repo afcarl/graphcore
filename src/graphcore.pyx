@@ -15,6 +15,12 @@ cdef cmdb.MDB_val bytes_to_mdb_val(bytes b):
     return r
 
 
+cdef bytes mdb_val_to_bytes(cmdb.MDB_val v):
+    cdef bytes b
+    b = (<char*> v.mv_data)[:v.mv_size]
+    return b
+
+
 cdef class EdgeSet:
     cdef Graph graph
 
@@ -22,6 +28,38 @@ cdef class EdgeSet:
     def __init__(self, graph):
         self.graph = graph
 
+
+cdef class NodeIterator:
+    cdef Graph graph
+    cdef cmdb.MDB_txn *txn
+    cdef cmdb.MDB_cursor *cur
+    cdef unsigned int op
+
+
+    def __init__(self, graph):
+        self.graph = graph
+        self.op = cmdb.MDB_FIRST
+
+        cmdb.mdb_txn_begin(self.graph.env, NULL, cmdb.MDB_RDONLY, &self.txn)
+        cmdb.mdb_cursor_open(self.txn, self.graph.nodes_db, &self.cur)
+        
+
+    def __next__(self):
+        cdef cmdb.MDB_val nodename = bytes_to_mdb_val(<bytes> "")
+        cdef cmdb.MDB_val nodeval = bytes_to_mdb_val(<bytes> "")
+        cdef int result = cmdb.mdb_cursor_get(self.cur, &nodename, &nodeval, self.op)
+        cdef bytes nn
+        cdef Node n1
+
+        if result == 0:
+            self.op = cmdb.MDB_NEXT
+            nn = mdb_val_to_bytes(nodename)
+            n1 = Node(nn)
+            return n1
+        else:
+            cmdb.mdb_cursor_close(self.cur)
+            cmdb.mdb_txn_commit(self.txn)
+            raise StopIteration()
 
 
 cdef class NodeSet:
@@ -53,6 +91,9 @@ cdef class NodeSet:
 
         return r == 0
 
+
+    def __iter__(self):
+        return NodeIterator(self.graph)
 
 
 cdef class Graph:
