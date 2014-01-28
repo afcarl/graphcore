@@ -8,6 +8,13 @@ cdef size_t MAP_SIZE = 1024 * 1024 * 1024 * 20
 cdef int MAX_DBS = 3
 
 
+cdef cmdb.MDB_val bytes_to_mdb_val(bytes b):
+    cdef cmdb.MDB_val r
+    r.mv_size = len(b) + 1
+    r.mv_data = <char*> b
+    return r
+
+
 cdef class EdgeSet:
     cdef Graph graph
 
@@ -27,13 +34,24 @@ cdef class NodeSet:
 
     def add(self, Node n):
         cdef cmdb.MDB_txn *txn
-        cdef cmdb.MDB_val *nodename = <cmdb.MDB_val*> PyMem_Malloc(sizeof(cmdb.MDB_val)) 
-        nodename.mv_size = 0
-        nodename.mv_data = NULL
-        
+        cdef cmdb.MDB_val nodename = bytes_to_mdb_val(n._name)
+        cdef cmdb.MDB_val nodeval = bytes_to_mdb_val(<bytes> "")
+
         cmdb.mdb_txn_begin(self.graph.env, NULL, 0, &txn)
-        cmdb.mdb_put(txn, self.graph.nodes_db, nodename, NULL, 0)
+        cmdb.mdb_put(txn, self.graph.nodes_db, &nodename, &nodeval, 0)
         cmdb.mdb_txn_commit(txn)
+
+    
+    def __contains__(self, Node n):
+        cdef cmdb.MDB_txn *txn
+        cdef cmdb.MDB_val key = bytes_to_mdb_val(n._name)
+        cdef cmdb.MDB_val val = bytes_to_mdb_val(<bytes> "")
+
+        cmdb.mdb_txn_begin(self.graph.env, NULL, 0, &txn)
+        cdef int r = cmdb.mdb_get(txn, self.graph.nodes_db, &key, &val)
+        cmdb.mdb_txn_commit(txn)
+
+        return r == 0
 
 
 
@@ -71,9 +89,9 @@ cdef class Graph:
 
         cmdb.mdb_txn_begin(self.env, NULL, 0, &txn)
 
-        cmdb.mdb_dbi_open(txn, "nodes", 0, &self.nodes_db)
-        cmdb.mdb_dbi_open(txn, "edges", 0, &self.edges_db) 
-        cmdb.mdb_dbi_open(txn, "meta", 0, &self.meta_db)
+        cmdb.mdb_dbi_open(txn, "nodes", cmdb.MDB_CREATE, &self.nodes_db)
+        cmdb.mdb_dbi_open(txn, "edges", cmdb.MDB_CREATE, &self.edges_db) 
+        cmdb.mdb_dbi_open(txn, "meta", cmdb.MDB_CREATE, &self.meta_db)
 
         cmdb.mdb_txn_commit(txn)
 

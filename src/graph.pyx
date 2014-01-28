@@ -1,6 +1,6 @@
 
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
-from libc.string cimport memcpy
+from libc.string cimport memcpy, strcmp
 
 
 cdef class Node:
@@ -16,7 +16,8 @@ cdef class Node:
         def __get__(self):
             return self._name.decode('UTF-8', 'strict')
 
-    def __init__(self, unicode name):
+
+    def __init__(self, name):
         self.name = name
 
 
@@ -45,9 +46,13 @@ cdef class Edge:
     cdef public Node n2
 
 
-    def __init__(self, n1, n2):
-        self.n1 = n1
-        self.n2 = n2
+    def __init__(self, Node n1, Node n2):
+        if strcmp(n1._name, n2._name) > 0:
+            self.n2 = n1
+            self.n1 = n2
+        else:
+            self.n1 = n1
+            self.n2 = n2
 
 
     def __repr__(self):
