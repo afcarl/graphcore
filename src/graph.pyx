@@ -11,6 +11,8 @@ cdef class Node:
             self._name = name.encode('UTF-8')
             if len(self._name) > 255:
                 raise ValueError('Node name may not be longer than 255 characters.')
+            if len(self._name) < 255:
+                raise ValueError('Node name must be at least 1 character.')
 
 
         def __get__(self):
@@ -59,9 +61,15 @@ cdef class Edge:
         return '(Edge: %s %s)' % (self.n1, self.n2)
 
 
-    cdef char *encode(self):
-        cdef bytes n1_name = self.n1._name
-        cdef bytes n2_name = self.n2._name
+    cdef char *encode(self, char invert):
+        cdef bytes n1_name
+        cdef bytes n2_name
+        if invert == 0:
+            n1_name = self.n1._name
+            n2_name = self.n2._name
+        else:
+            n1_name = self.n2._name
+            n2_name = self.n1._name
 
         cdef int mem_needed = 2 + len(n1_name) + len(n2_name)
         cdef char* out_str = <char*> PyMem_Malloc(mem_needed * sizeof(char))
